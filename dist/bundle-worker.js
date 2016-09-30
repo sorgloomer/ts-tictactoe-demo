@@ -173,14 +173,14 @@ function setArrayNew(array, index, value) {
     result[index] = value;
     return result;
 }
-function setArray(array, index, value) {
+function set(array, index, value) {
     if (array[index] === value) {
         return array;
     }
     return setArrayNew(array, index, value);
 }
-function updateArray(array, index, updater) {
-    return setArray(array, index, updater(array[index], index, array));
+function update(array, index, updater) {
+    return set(array, index, updater(array[index], index, array));
 }
 
 var DIAGONALS = [
@@ -193,8 +193,10 @@ var DIAGONALS = [
     [0, 0, 1, 1],
     [2, 0, -1, 1]
 ];
+
 var InvalidStepError = (function () {
-    function InvalidStepError() {
+    function InvalidStepError(message) {
+        this.message = message;
         this.name = "InvalidStepError";
     }
     return InvalidStepError;
@@ -203,6 +205,9 @@ function nextPlayer(currentPlayer) {
     return currentPlayer === "o" ? "x" : "o";
 }
 var EMPTY_BOARD = repeat(repeat("", 3), 3);
+function setMatrix(mx, i, j, value) {
+    return update(mx, i, function (row) { return set(row, j, value); });
+}
 var State = (function () {
     function State(board, turn) {
         this.board = board;
@@ -212,11 +217,13 @@ var State = (function () {
         return new State(EMPTY_BOARD, turn);
     };
     State.prototype.step = function (toCoordX, toCoordY) {
-        var _this = this;
-        if (this.getCell(toCoordX, toCoordY) !== "") {
-            throw new InvalidStepError();
+        if (this.getResult() !== "play") {
+            throw new InvalidStepError("Game Over");
         }
-        return new State(updateArray(this.board, toCoordY, function (row) { return setArray(row, toCoordX, _this.turn); }), nextPlayer(this.turn));
+        if (this.getCell(toCoordX, toCoordY) !== "") {
+            throw new InvalidStepError("Occupied Cell");
+        }
+        return new State(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
     State.prototype.isTie = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });

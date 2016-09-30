@@ -1,7 +1,8 @@
 
 import * as utils from "../utils/arrays";
 import * as immutable from "../utils/immutable";
-import { int } from "../utils/arrays";
+import { int, mapRange } from "../utils/arrays";
+
 
 export type Turn = "o" | "x";
 export type Transition = [int, int];
@@ -21,8 +22,15 @@ const DIAGONALS = [
     [2, 0, -1, 1]
 ];
 
+export const ALL_COORDS = [
+    [0,0], [0,1], [0,2],
+    [1,0], [1,1], [1,2],
+    [2,0], [2,1], [2,2]
+];
+
 export class InvalidStepError {
     name : string = "InvalidStepError";
+    constructor(public message: string) {}
 }
 
 export function nextPlayer(currentPlayer : Turn) : Turn {
@@ -45,8 +53,11 @@ export class State {
     }
 
     step(toCoordX : number, toCoordY : number) : State {
+        if (this.getResult() !== "play") {
+            throw new InvalidStepError("Game Over");
+        }
         if (this.getCell(toCoordX, toCoordY) !== "") {
-            throw new InvalidStepError();
+            throw new InvalidStepError("Occupied Cell");
         }
 
         return new State(

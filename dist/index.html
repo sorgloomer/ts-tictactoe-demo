@@ -2,24 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Title</title>
+  <title>Extraordinary TicTacToe game</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-  <table>
-    <tr>
-      <td>
-        <svg>
-          <path d="6 7"></path>
-        </svg>
-      </td>
-      <td></td>
-      <td></td>
-    </tr>
-  </table>
+<div class="container" ng-app="App" ng-controller="TableController">
+  <div class="info-bar">
+    <span ng-class="{active:state.game.turn == 'x'}">Player <img src="img/sign-x.svg"></span>
+    <span ng-class="{active:state.game.turn == 'o'}">Player <img src="img/sign-o.svg"></span>
+  </div>
+  <div class="game-area">
+    <div class="game-table">
+      <div class="inner">
+        <div class="game-cell" ng-repeat="coord in allCoords" ng-click="putSign(coord)">
+          <img class="sign" ng-src="{{signImgs[getCellValue(coord)]}}">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="action-bar">
+    <button ng-click="doReset()">Reset</button>
+    <button ng-click="doUndo()">Undo</button>
+  </div>
+
 </div>
 
+<script src="lib/angular.min.js"></script>
 <script src="bundle-index.js"></script>
 
 </body>

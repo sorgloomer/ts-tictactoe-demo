@@ -31,9 +31,10 @@ module.exports = function(grunt) {
     },
     "copy": {
       "dist": {
-        "files": [{
-          "dest": "./dist", "cwd": "./src", "src": "**/*.html", "expand": true
-        }]
+        "files": [
+          { "dest": "./dist", "cwd": "./src", "src": "**/*.{html,css,svg}", "expand": true },
+          { "dest": "./dist", "cwd": "./src", "src": "lib/**/*", "expand": true }
+        ]
       }
     }
   });

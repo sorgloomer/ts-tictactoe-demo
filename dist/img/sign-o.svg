@@ -1,0 +1,19 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .sign {
+          stroke-dasharray: 320;
+          stroke-dashoffset: 320;
+          animation: dash 0.5s linear forwards;
+        }
+
+        @keyframes dash {
+          from {
+            stroke-dashoffset: 320;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+    </style>
+    <circle class="sign" cx="50" cy="50" r="42" stroke="blue" stroke-width="8" fill="none" transform="rotate(-90 50 50)" />
+</svg>

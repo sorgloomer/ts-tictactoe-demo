@@ -1,0 +1,40 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .sign1, .sign2 {
+          stroke-dasharray: 150;
+          stroke-dashoffset: 150;
+        }
+
+        .sign1 {
+          animation: dash1 0.5s linear forwards;
+        }
+        .sign2 {
+        animation: dash2 0.5s linear forwards;
+        }
+
+        @keyframes dash1 {
+        from {
+        stroke-dashoffset: 150;
+        }
+        50% {
+        stroke-dashoffset: 0;
+        }
+        to {
+        stroke-dashoffset: 0;
+        }
+        }
+        @keyframes dash2 {
+        from {
+        stroke-dashoffset: 150;
+        }
+        50% {
+        stroke-dashoffset: 150;
+        }
+        to {
+        stroke-dashoffset: 0;
+        }
+        }
+    </style>
+    <line class="sign1" x1="8" y1="8" x2="92" y2="92" stroke="red" stroke-width="8"/>
+    <line class="sign2" x1="92" y1="8" x2="8" y2="92" stroke="red" stroke-width="8"/>
+</svg>

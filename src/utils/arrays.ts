@@ -1,4 +1,5 @@
-export type int = number;
+import {int} from "./types";
+
 export type ArrayMapping<T, U> = (value: T, index: int, array: T[]) => U;
 export type ArrayPredicate<T> = ArrayMapping<T, boolean>;
 
@@ -79,3 +80,8 @@ export function maxBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, de
     return bestItem;
 }
 
+export function mapToObject<T, U>(arr: T[], mapping: ArrayMapping<T, [string, U]>) : {[key: string]: U} {
+    const result = {};
+    arr.map(mapping).forEach(([k, v]) => { result[k] = v; });
+    return result;
+}
