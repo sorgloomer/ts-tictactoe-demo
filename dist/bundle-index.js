@@ -1,4 +1,19 @@
-var app = angular.module("App", []);
+var app = angular.module("App", ["ngRoute"]);
+app.config([
+    "$routeProvider",
+    function ($routeProvider) {
+        $routeProvider.
+            when("/game", {
+            templateUrl: "view/game.html",
+            controller: "TableController"
+        }).
+            when("/menu", {
+            template: "view/menu.html",
+            controller: ""
+        }).
+            otherwise("/menu");
+    }
+]);
 
 function any(arr, pred) {
     for (var i = 0; i < arr.length; i++) {
@@ -121,6 +136,57 @@ var State = (function () {
     };
     return State;
 }());
+var Serializer = {
+    serialize: function (state) {
+        // use only ordered structures to ensure uniqueness, as state objects may have properties in random order.
+        return JSON.stringify([state.turn, state.board]);
+    },
+    unserialize: function (str) {
+        var data = JSON.parse(str);
+        return new State(data[1], data[0]);
+    }
+};
+
+var TicTacToeAI = (function () {
+    function TicTacToeAI() {
+        this.worker = null;
+        this.pending = new Map();
+        this.sequence = 0;
+    }
+    TicTacToeAI.prototype.getWorker = function () {
+        return this.worker || (this.worker = this._createWorker());
+    };
+    TicTacToeAI.prototype._handleMessage = function (data) {
+        var pending = this.pending.get(data.id);
+        this.pending.delete(data.id);
+        pending[data.kind](data.value);
+    };
+    TicTacToeAI.prototype._createWorker = function () {
+        var _this = this;
+        var worker = new Worker("bundle-worker.js");
+        worker.onmessage = function (evt) { _this._handleMessage(evt.data); };
+        return worker;
+    };
+    TicTacToeAI.prototype._postCall = function (id, name, args) {
+        this.getWorker().postMessage({ id: id, kind: "call", name: name, args: args });
+    };
+    TicTacToeAI.prototype._call = function (name) {
+        var _this = this;
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        return new Promise(function (resolve, reject) {
+            var id = ++_this.sequence;
+            _this.pending.set(id, { resolve: resolve, reject: reject });
+            _this._postCall(id, name, args);
+        });
+    };
+    TicTacToeAI.prototype.getWinningCategory = function (state) {
+        return this._call("getWinningCategory", Serializer.serialize(state));
+    };
+    return TicTacToeAI;
+}());
 
 var StateWithHistory = (function () {
     function StateWithHistory(game, prev) {
@@ -137,18 +203,32 @@ var SignImgs = {
 };
 // TODO: wire ng-annotate
 app.controller("TableController", [
-    "$scope",
-    function ($scope) {
+    "$scope", "$timeout", "AiService",
+    function ($scope, $timeout, AiService) {
         $scope.allCoords = ALL_COORDS;
         $scope.signImgs = SignImgs;
         $scope.state = null;
         $scope.getCellValue = function (coord) { return $scope.state.game.board[coord[0]][coord[1]]; };
-        $scope.putSign = function (coord) {
-            $scope.state = new StateWithHistory($scope.state.game.step(coord[1], coord[0]), $scope.state);
+        $scope.isAiRound = function () {
+            return $scope.state.game.turn == "o";
         };
+        function setState(state) {
+            $scope.state = state;
+            if ($scope.isAiRound()) {
+                scheduleAi();
+            }
+        }
+        $scope.putSign = function (coord) {
+            setState(new StateWithHistory($scope.state.game.step(coord[1], coord[0]), $scope.state));
+        };
+        function putAi(coord) {
+            setState(new StateWithHistory($scope.state.game.step(coord[1], coord[0]), $scope.state.prev // skip ai steps in history
+            ));
+        }
+        
         $scope.doUndo = function () {
             if ($scope.state.prev) {
-                $scope.state = $scope.state.prev;
+                setState($scope.state.prev);
             }
         };
         $scope.doReset = function () {
@@ -158,5 +238,28 @@ app.controller("TableController", [
         function reset() {
             $scope.state = new StateWithHistory(State.initial("x"));
         }
+        function stepAi(lastState) {
+            AiService.getWinningCategory(lastState.game).then(function (cat) {
+                if ($scope.state === lastState) {
+                    putAi(cat.transition);
+                }
+            });
+        }
+        function scheduleAi() {
+            var currentState = $scope.state;
+            $timeout(function () {
+                stepAi(currentState);
+            }, 1000 + 3000 * Math.random());
+        }
+    }
+]);
+app.factory("AiService", [
+    "$q", function ($q) {
+        var service = new TicTacToeAI();
+        return {
+            getWinningCategory: function (state) {
+                return $q.when(service.getWinningCategory(state));
+            }
+        };
     }
 ]);

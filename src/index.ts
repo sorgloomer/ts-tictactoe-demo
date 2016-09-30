@@ -1,6 +1,6 @@
 
-import "./mvw/app";
-import "./mvw/controllers";
+import "./view/app";
+import "./view/game";
 
 
 function formatState(state) {
