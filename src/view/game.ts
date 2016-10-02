@@ -1,15 +1,7 @@
 import {app} from "./app";
-import {BoardState, ALL_COORDS} from "../model/board-state";
-import {TicTacToeAI} from "../worker/ai";
-import {GameController} from "../model/game-controller";
-
-class StateWithHistory {
-    constructor(
-        public game : BoardState,
-        public prev : StateWithHistory | null = null
-    ) {
-    }
-}
+import {BoardState, Turn} from "../model/board-state";
+import {GameController, PlayerType} from "../model/game-controller";
+import {LocalStorageGameStore} from "../model/game-store";
 
 const SignImgs = {
     "": "img/empty.svg",
@@ -17,16 +9,19 @@ const SignImgs = {
     "x": "img/sign-x.svg"
 };
 
-// TODO: wire ng-annotate
-app.controller("TableController", [
-    "$scope", "$timeout", "AiService",
-    function($scope, $timeout, AiService) {
+const ALL_COORDS = [
+    [0,0], [1,0], [2,0],
+    [0,1], [1,1], [2,1],
+    [0,2], [1,2], [2,2]
+];
 
-        const model = new GameController(
-            "cpu", "cpu",
-            BoardState.initial("x"),
-            []
-        );
+
+const FIRST_PLAYER : Turn = "x";
+// TODO: wire ng-annotate
+app.controller("GameController",
+    function($scope, $routeParams) {
+
+        const model : GameController = determineModel();
 
         model.addEventListener("afterCpuRound", () => {
             $scope.$apply();
@@ -42,12 +37,11 @@ app.controller("TableController", [
 
         $scope.state = null;
 
-        $scope.getCellValue = coord => model.boardState.board[coord[0]][coord[1]];
+        $scope.getCellValue = coord => model.boardState.board[coord[1]][coord[0]];
 
         $scope.isAiRound = () => {
             return $scope.model.isCpuTurn();
         };
-
 
         $scope.putSign = coord => {
             model.putPlayerSign(coord[0], coord[1]);
@@ -58,21 +52,29 @@ app.controller("TableController", [
         };
 
         $scope.doReset = () => {
-            model.reset();
+            model.reset("x");
         };
-    }
-]);
+        $scope.isTurnOf = (player : Turn) => {
+            return model.boardState.getResult() === "play" && model.boardState.turn == player;
+        };
 
-
-app.factory("AiService", [
-    "$q", function($q) {
-        const service = new TicTacToeAI();
-        return {
-            getWinningCategory(state) {
-                return $q.when(service.getWinningCategory(state));
+        function determineModel() : GameController {
+            switch ($routeParams.mode) {
+                case "pvp":
+                    return createModel("player", "player");
+                case "pvc":
+                    return createModel("player", "cpu");
+                case "cvp":
+                    return createModel("cpu", "player");
+                case "cvc":
+                    return createModel("cpu", "cpu");
+                case "continue":
+                default:
+                    return LocalStorageGameStore.loadGame();
             }
-        };
+            function createModel(playerx : PlayerType, playero : PlayerType) : GameController {
+                return new GameController(playero, playerx, BoardState.initial(FIRST_PLAYER), []);
+            }
+        }
     }
-]);
-
-
+);

@@ -241,7 +241,7 @@ var BoardState = (function () {
             var diagonal = DIAGONALS_1[_i];
             var temp = this.subboardResult.apply(this, diagonal);
             if (temp) {
-                return temp;
+                return temp === "x" ? "winx" : "wino";
             }
         }
         return "play";

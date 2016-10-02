@@ -9,11 +9,11 @@ app.config([
     $routeProvider.
     when("/game", {
       templateUrl: "view/game.html",
-      controller: "TableController"
+      controller: "GameController"
     }).
     when("/menu", {
-      template: "view/menu.html",
-      controller: ""
+      templateUrl: "view/menu.html",
+      controller: "MenuController"
     }).
     otherwise("/menu");
   }

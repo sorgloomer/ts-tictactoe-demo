@@ -1,7 +1,7 @@
 <div class="container">
   <div class="info-bar">
-    <span ng-class="{active:state.game.turn == 'x'}">Player <img src="img/sign-x.svg"></span>
-    <span ng-class="{active:state.game.turn == 'o'}">Player <img src="img/sign-o.svg"></span>
+    <span ng-class="{active:isTurnOf('x')}">Player <img src="img/sign-x.svg"></span>
+    <span ng-class="{active:isTurnOf('o')}">Player <img src="img/sign-o.svg"></span>
   </div>
   <div class="game-area">
     <div class="game-table">
@@ -13,7 +13,7 @@
     </div>
   </div>
   <div class="action-bar">
-    <button ng-click="doReset()">Reset</button>
-    <button ng-click="doUndo()">Undo</button>
+    <button class="btn" ng-click="doReset()">Reset</button>
+    <button class="btn" ng-click="doUndo()">Undo</button>
   </div>
 </div>

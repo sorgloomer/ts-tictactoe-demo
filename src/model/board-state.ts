@@ -83,9 +83,9 @@ export class BoardState {
 
     checkWinner() : Result {
         for (let diagonal of DIAGONALS) {
-            const temp : Result = this.subboardResult(...diagonal);
+            const temp : CellValue = this.subboardResult(...diagonal);
             if (temp) {
-                return temp;
+                return temp === "x" ? "winx" : "wino";
             }
         }
         return "play";

@@ -1,4 +1,6 @@
-html, body, .game-area, .game-table, .game-cell, .inner, .container {
+html, body, .game-area, .game-table,
+.game-cell, .inner, .container,
+.menu-dialog {
     display: flex;
 }
 
@@ -11,7 +13,7 @@ html, body, .view-container {
     justify-content: center;
 }
 
-body, button {
+body, .btn {
     font-family: Helvetica, Arial, Sans-Serif;
     font-size: 25px;
 }
@@ -42,6 +44,7 @@ body, button {
     width: 99%;
     height: 99%;
     align-items: center;
+    justify-content: center;
 }
 
 .info-bar, .action-bar {
@@ -50,23 +53,38 @@ body, button {
     display: flex;
 }
 
-.info-bar span, .action-bar button {
+.info-bar span, .btn {
     border: black 2px solid;
     border-radius: 25px;
     padding: 12px;
-}
-
-.action-bar button {
-    margin-right: 25px;
+    transition: box-shadow 0.3s ease;
 }
 
 .info-bar span {
     box-shadow: gold 0 0 0 0;
-    transition: box-shadow 0.3s ease;
 }
+
+.btn {
+    /*background: linear-gradient(center, #cccccc, #999999);*/
+    background: #cccccc;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+}
+
 .info-bar span.active {
     box-shadow: gold 0 0 10px 10px;
 }
+
+.btn:hover {
+    box-shadow: aquamarine 0 0 5px 5px;
+}
+
+.action-bar > * {
+    margin-right: 25px;
+}
+
+
 
 .info-bar img {
     display: inline-block;
@@ -97,4 +115,14 @@ body, button {
     height: 30%;
     align-items: center;
     justify-content: center;
+}
+
+.menu-dialog {
+    min-width: 30%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+}
+.menu-dialog > * {
+    margin-bottom: 8px;
 }

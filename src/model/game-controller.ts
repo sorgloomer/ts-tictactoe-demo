@@ -44,6 +44,7 @@ export class GameController extends EventSource {
 
   _setBoardState(boardState: BoardState): void {
     this.boardState = boardState;
+    this._changestamp++;
     const result : Result = boardState.getResult();
     if (result === "play") {
       LocalStorageGameStore.saveGame(this);
@@ -55,7 +56,6 @@ export class GameController extends EventSource {
 
   _step(toCoordX: number, toCoordY: number): void {
     this._setBoardState(this.boardState.step(toCoordX, toCoordY));
-    this._changestamp++;
   }
 
   _handleIfCpuRound(): void {
@@ -87,6 +87,7 @@ export class GameController extends EventSource {
   _handleCpuRound() : void {
     const savedChangestamp = this._changestamp;
     this._calculateCpuMove().then((winningCategory: WinningCategory) => {
+      console.log(winningCategory);
       this._handleCpuMove(winningCategory, savedChangestamp);
     }).then(null, e => {
       this.fireEvent("error", e);

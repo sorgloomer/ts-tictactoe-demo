@@ -11,11 +11,11 @@ app.config([
         $routeProvider.
             when("/game", {
             templateUrl: "view/game.html",
-            controller: "TableController"
+            controller: "GameController"
         }).
             when("/menu", {
-            template: "view/menu.html",
-            controller: ""
+            templateUrl: "view/menu.html",
+            controller: "MenuController"
         }).
             otherwise("/menu");
     }
@@ -77,11 +77,7 @@ var DIAGONALS = [
     [0, 0, 1, 1],
     [2, 0, -1, 1]
 ];
-var ALL_COORDS = [
-    [0, 0], [0, 1], [0, 2],
-    [1, 0], [1, 1], [1, 2],
-    [2, 0], [2, 1], [2, 2]
-];
+
 var InvalidStepError = (function () {
     function InvalidStepError(message) {
         this.message = message;
@@ -129,7 +125,7 @@ var BoardState = (function () {
             var diagonal = DIAGONALS_1[_i];
             var temp = this.subboardResult.apply(this, diagonal);
             if (temp) {
-                return temp;
+                return temp === "x" ? "winx" : "wino";
             }
         }
         return "play";
@@ -277,6 +273,7 @@ var GameController = (function (_super) {
     };
     GameController.prototype._setBoardState = function (boardState) {
         this.boardState = boardState;
+        this._changestamp++;
         var result = boardState.getResult();
         if (result === "play") {
             LocalStorageGameStore.saveGame(this);
@@ -288,7 +285,6 @@ var GameController = (function (_super) {
     };
     GameController.prototype._step = function (toCoordX, toCoordY) {
         this._setBoardState(this.boardState.step(toCoordX, toCoordY));
-        this._changestamp++;
     };
     GameController.prototype._handleIfCpuRound = function () {
         if (this.isCpuTurn()) {
@@ -317,6 +313,7 @@ var GameController = (function (_super) {
         var _this = this;
         var savedChangestamp = this._changestamp;
         this._calculateCpuMove().then(function (winningCategory) {
+            console.log(winningCategory);
             _this._handleCpuMove(winningCategory, savedChangestamp);
         }).then(null, function (e) {
             _this.fireEvent("error", e);
@@ -358,46 +355,65 @@ var SignImgs = {
     "o": "img/sign-o.svg",
     "x": "img/sign-x.svg"
 };
+var ALL_COORDS$$1 = [
+    [0, 0], [1, 0], [2, 0],
+    [0, 1], [1, 1], [2, 1],
+    [0, 2], [1, 2], [2, 2]
+];
+var FIRST_PLAYER = "x";
 // TODO: wire ng-annotate
-app.controller("TableController", [
-    "$scope", "$timeout", "AiService",
-    function ($scope, $timeout, AiService) {
-        var model = new GameController("cpu", "cpu", BoardState.initial("x"), []);
-        model.addEventListener("afterCpuRound", function () {
-            $scope.$apply();
-        });
-        model.addEventListener("error", function (e) {
-            console.error(e);
-            alert("Sorry, the game ran into an error.");
-        });
-        $scope.allCoords = ALL_COORDS;
-        $scope.signImgs = SignImgs;
-        $scope.state = null;
-        $scope.getCellValue = function (coord) { return model.boardState.board[coord[0]][coord[1]]; };
-        $scope.isAiRound = function () {
-            return $scope.model.isCpuTurn();
-        };
-        $scope.putSign = function (coord) {
-            model.putPlayerSign(coord[0], coord[1]);
-        };
-        $scope.doUndo = function () {
-            model.undoPlayerStep();
-        };
-        $scope.doReset = function () {
-            model.reset();
-        };
+app.controller("GameController", function ($scope, $routeParams) {
+    var model = determineModel();
+    model.addEventListener("afterCpuRound", function () {
+        $scope.$apply();
+    });
+    model.addEventListener("error", function (e) {
+        console.error(e);
+        alert("Sorry, the game ran into an error.");
+    });
+    $scope.allCoords = ALL_COORDS$$1;
+    $scope.signImgs = SignImgs;
+    $scope.state = null;
+    $scope.getCellValue = function (coord) { return model.boardState.board[coord[1]][coord[0]]; };
+    $scope.isAiRound = function () {
+        return $scope.model.isCpuTurn();
+    };
+    $scope.putSign = function (coord) {
+        model.putPlayerSign(coord[0], coord[1]);
+    };
+    $scope.doUndo = function () {
+        model.undoPlayerStep();
+    };
+    $scope.doReset = function () {
+        model.reset("x");
+    };
+    $scope.isTurnOf = function (player) {
+        return model.boardState.getResult() === "play" && model.boardState.turn == player;
+    };
+    function determineModel() {
+        switch ($routeParams.mode) {
+            case "pvp":
+                return createModel("player", "player");
+            case "pvc":
+                return createModel("player", "cpu");
+            case "cvp":
+                return createModel("cpu", "player");
+            case "cvc":
+                return createModel("cpu", "cpu");
+            case "continue":
+            default:
+                return LocalStorageGameStore.loadGame();
+        }
+        function createModel(playerx, playero) {
+            return new GameController(playero, playerx, BoardState.initial(FIRST_PLAYER), []);
+        }
     }
-]);
-app.factory("AiService", [
-    "$q", function ($q) {
-        var service = new TicTacToeAI();
-        return {
-            getWinningCategory: function (state) {
-                return $q.when(service.getWinningCategory(state));
-            }
-        };
-    }
-]);
+});
+
+// TODO: wire ng-annotate
+app.controller("MenuController", function ($scope) {
+    $scope.canContinue = LocalStorageGameStore.hasSavedGame();
+});
 
 var x = 4;
 x = null;
