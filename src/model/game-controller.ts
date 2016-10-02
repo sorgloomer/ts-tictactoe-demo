@@ -55,7 +55,7 @@ export class GameController extends EventSource {
   }
 
   _step(toCoordX: number, toCoordY: number): void {
-    this._setBoardState(this.boardState.step(toCoordX, toCoordY));
+    this._setBoardState(this.boardState.moveTo(toCoordX, toCoordY));
   }
 
   _handleIfCpuRound(): void {
@@ -72,7 +72,7 @@ export class GameController extends EventSource {
   }
 
   _calculateCpuMove() : Promise<WinningCategory> {
-    return delay(1000 + Math.random() * 500).then(() => {
+    return delay(500).then(() => {
       return aiWorker.getWinningCategory(this.boardState);
     });
   }

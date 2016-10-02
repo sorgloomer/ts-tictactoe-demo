@@ -55,7 +55,7 @@ body, .btn {
 
 .info-bar span, .btn {
     border: black 2px solid;
-    border-radius: 25px;
+    /* border-radius: 25px; */ /* no-one likes radius in 2016 */
     padding: 12px;
     transition: box-shadow 0.3s ease;
 }
@@ -73,11 +73,11 @@ body, .btn {
 }
 
 .info-bar span.active {
-    box-shadow: gold 0 0 10px 10px;
+    box-shadow: gold 0 0 15px 5px;
 }
 
 .btn:hover {
-    box-shadow: aquamarine 0 0 5px 5px;
+    box-shadow: #222222 2px 2px 5px 0;
 }
 
 .action-bar > * {
@@ -86,10 +86,10 @@ body, .btn {
 
 
 
-.info-bar img {
+.inline-sign {
     display: inline-block;
-    height: 20px;
-    width: 20px;
+    height: 15pt;
+    width: 15pt;
 }
 
 .info-bar {
@@ -125,4 +125,35 @@ body, .btn {
 }
 .menu-dialog > * {
     margin-bottom: 8px;
+}
+
+.result-dialog {
+    position: absolute;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+
+    background: white;
+    border: 6px solid black;
+    width: 40%;
+    height: 30%;
+    box-shadow: #222222 0 0 12px 0;
+    font-size: 200%;
+    text-align: center;
+
+    transition: opacity 100ms linear;
+}
+
+.result-dialog:hover {
+    opacity: 0.5;
+}
+
+.result-dialog .inline-sign {
+    height: 30pt;
+    width: 30pt;
+}
+
+
+.dialog-title {
+    font-weight: bold;
 }

@@ -28,8 +28,8 @@ export const ALL_COORDS = [
     [2,0], [2,1], [2,2]
 ];
 
-export class InvalidStepError {
-    name : string = "InvalidStepError";
+export class InvalidMoveError {
+    name : string = "InvalidMoveError";
     constructor(public message: string) {}
 }
 
@@ -52,12 +52,12 @@ export class BoardState {
         return new BoardState(EMPTY_BOARD, turn);
     }
 
-    step(toCoordX : number, toCoordY : number) : BoardState {
+    moveTo(toCoordX : number, toCoordY : number) : BoardState {
         if (this.getResult() !== "play") {
-            throw new InvalidStepError("Game Over");
+            throw new InvalidMoveError("Game Over");
         }
         if (this.getCell(toCoordX, toCoordY) !== "") {
-            throw new InvalidStepError("Occupied Cell");
+            throw new InvalidMoveError("Occupied Cell");
         }
 
         return new BoardState(
@@ -66,7 +66,7 @@ export class BoardState {
         );
     }
 
-    isTie() : boolean {
+    hasNoMoreMoves() : boolean {
         return utils.all(this.board, row => utils.all(row, cell => cell !== ""))
     }
 
@@ -92,10 +92,11 @@ export class BoardState {
     }
 
     getResult() : Result {
-        if (this.isTie()) {
+        const winner : Result = this.checkWinner();
+        if (winner === "play" && this.hasNoMoreMoves()) {
             return "tie";
         }
-        return this.checkWinner();
+        return winner;
     }
 }
 

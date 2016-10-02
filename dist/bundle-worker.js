@@ -255,7 +255,7 @@ var BoardState = (function () {
         }
         return new BoardState(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
-    BoardState.prototype.isTie = function () {
+    BoardState.prototype.hasNoMoreSteps = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });
     };
     BoardState.prototype.getCell = function (x, y) {
@@ -277,10 +277,11 @@ var BoardState = (function () {
         return "play";
     };
     BoardState.prototype.getResult = function () {
-        if (this.isTie()) {
+        var winner = this.checkWinner();
+        if (winner === "play" && this.hasNoMoreSteps()) {
             return "tie";
         }
-        return this.checkWinner();
+        return winner;
     };
     return BoardState;
 }());

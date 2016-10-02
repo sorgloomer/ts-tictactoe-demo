@@ -39,9 +39,17 @@ app.controller("GameController",
 
         $scope.getCellValue = coord => model.boardState.board[coord[1]][coord[0]];
 
-        $scope.isAiRound = () => {
-            return $scope.model.isCpuTurn();
-        };
+        $scope.isAiRound = false;
+        $scope.$watch(
+            () => model.isCpuTurn(),
+            newValue => { $scope.isAiRound = newValue; }
+        );
+
+        $scope.gameResult = "play";
+        $scope.$watch(
+            () => model.boardState.getResult(),
+            newValue => { $scope.gameResult = newValue; }
+        );
 
         $scope.putSign = coord => {
             model.putPlayerSign(coord[0], coord[1]);

@@ -5,7 +5,7 @@ import {BoardState, Turn, Transition, Serializer, Transitions} from "../model/bo
 
 const minmax = new MinMax<BoardState, Transition, Turn>({
   apply(state: BoardState, transition: Transition) : BoardState {
-    return state.step(transition[0], transition[1]);
+    return state.moveTo(transition[0], transition[1]);
   },
   inspect(state : BoardState) : StateInspection {
     const result = state.getResult();

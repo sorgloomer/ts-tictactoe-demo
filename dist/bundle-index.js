@@ -109,7 +109,7 @@ var BoardState = (function () {
         }
         return new BoardState(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
-    BoardState.prototype.isTie = function () {
+    BoardState.prototype.hasNoMoreSteps = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });
     };
     BoardState.prototype.getCell = function (x, y) {
@@ -131,10 +131,11 @@ var BoardState = (function () {
         return "play";
     };
     BoardState.prototype.getResult = function () {
-        if (this.isTie()) {
+        var winner = this.checkWinner();
+        if (winner === "play" && this.hasNoMoreSteps()) {
             return "tie";
         }
-        return this.checkWinner();
+        return winner;
     };
     return BoardState;
 }());
@@ -299,7 +300,7 @@ var GameController = (function (_super) {
     };
     GameController.prototype._calculateCpuMove = function () {
         var _this = this;
-        return delay(1000 + Math.random() * 500).then(function () {
+        return delay(500).then(function () {
             return aiWorker.getWinningCategory(_this.boardState);
         });
     };
@@ -375,9 +376,10 @@ app.controller("GameController", function ($scope, $routeParams) {
     $scope.signImgs = SignImgs;
     $scope.state = null;
     $scope.getCellValue = function (coord) { return model.boardState.board[coord[1]][coord[0]]; };
-    $scope.isAiRound = function () {
-        return $scope.model.isCpuTurn();
-    };
+    $scope.isAiRound = false;
+    $scope.$watch(function () { return model.isCpuTurn(); }, function (newValue) { $scope.isAiRound = newValue; });
+    $scope.gameResult = "play";
+    $scope.$watch(function () { return model.boardState.getResult(); }, function (newValue) { $scope.gameResult = newValue; });
     $scope.putSign = function (coord) {
         model.putPlayerSign(coord[0], coord[1]);
     };
