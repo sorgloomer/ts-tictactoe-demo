@@ -1,13 +1,13 @@
 import { MinMax } from "../algorithm/minmax";
 import { StateInspection } from "../algorithm/game-contract";
 
-import {State, Turn, Transition, Serializer, Transitions} from "../model/state";
+import {BoardState, Turn, Transition, Serializer, Transitions} from "../model/board-state";
 
-const minmax = new MinMax<State, Transition, Turn>({
-  apply(state: State, transition: Transition) : State {
+const minmax = new MinMax<BoardState, Transition, Turn>({
+  apply(state: BoardState, transition: Transition) : BoardState {
     return state.step(transition[0], transition[1]);
   },
-  inspect(state : State) : StateInspection {
+  inspect(state : BoardState) : StateInspection {
     const result = state.getResult();
     return {
       isGameOver: result !== "play",
@@ -16,10 +16,10 @@ const minmax = new MinMax<State, Transition, Turn>({
       currentPlayer: state.turn
     };
   },
-  serialize(state : State) : string {
+  serialize(state : BoardState) : string {
     return Serializer.serialize(state);
   },
-  transitions(state : State) : Transition[] {
+  transitions(state : BoardState) : Transition[] {
     return Transitions.getTransitionsOf(state);
   }
 });

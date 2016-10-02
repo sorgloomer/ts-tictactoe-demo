@@ -208,35 +208,35 @@ var EMPTY_BOARD = repeat(repeat("", 3), 3);
 function setMatrix(mx, i, j, value) {
     return update(mx, i, function (row) { return set(row, j, value); });
 }
-var State = (function () {
-    function State(board, turn) {
+var BoardState = (function () {
+    function BoardState(board, turn) {
         this.board = board;
         this.turn = turn;
     }
-    State.initial = function (turn) {
-        return new State(EMPTY_BOARD, turn);
+    BoardState.initial = function (turn) {
+        return new BoardState(EMPTY_BOARD, turn);
     };
-    State.prototype.step = function (toCoordX, toCoordY) {
+    BoardState.prototype.step = function (toCoordX, toCoordY) {
         if (this.getResult() !== "play") {
             throw new InvalidStepError("Game Over");
         }
         if (this.getCell(toCoordX, toCoordY) !== "") {
             throw new InvalidStepError("Occupied Cell");
         }
-        return new State(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
+        return new BoardState(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
-    State.prototype.isTie = function () {
+    BoardState.prototype.isTie = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });
     };
-    State.prototype.getCell = function (x, y) {
+    BoardState.prototype.getCell = function (x, y) {
         return this.board[y][x];
     };
-    State.prototype.subboardResult = function (centerX, centerY, deltaX, deltaY) {
+    BoardState.prototype.subboardResult = function (centerX, centerY, deltaX, deltaY) {
         var _this = this;
         var values = [0, 1, 2].map(function (i) { return _this.getCell(centerY + i * deltaY, centerX + i * deltaX); });
         return everySameOrDefault(values, "");
     };
-    State.prototype.checkWinner = function () {
+    BoardState.prototype.checkWinner = function () {
         for (var _i = 0, DIAGONALS_1 = DIAGONALS; _i < DIAGONALS_1.length; _i++) {
             var diagonal = DIAGONALS_1[_i];
             var temp = this.subboardResult.apply(this, diagonal);
@@ -246,13 +246,13 @@ var State = (function () {
         }
         return "play";
     };
-    State.prototype.getResult = function () {
+    BoardState.prototype.getResult = function () {
         if (this.isTie()) {
             return "tie";
         }
         return this.checkWinner();
     };
-    return State;
+    return BoardState;
 }());
 var Serializer = {
     serialize: function (state) {
@@ -261,7 +261,7 @@ var Serializer = {
     },
     unserialize: function (str) {
         var data = JSON.parse(str);
-        return new State(data[1], data[0]);
+        return new BoardState(data[1], data[0]);
     }
 };
 var Transitions = {

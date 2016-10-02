@@ -6,9 +6,9 @@ import { int, mapRange } from "../utils/arrays";
 
 export type Turn = "o" | "x";
 export type Transition = [int, int];
+export type Result = "play" | "wino" | "winx" | "tie";
 
 type CellValue = "" | "o" | "x";
-type Result = "play" | "wino" | "winx" | "tie";
 type Board = CellValue[][];
 
 const DIAGONALS = [
@@ -44,15 +44,15 @@ function setMatrix<T>(mx:T[][], i: int, j: int, value: T) : T[][] {
     return immutable.update(mx, i, row => immutable.set(row, j, value));
 }
 
-export class State {
+export class BoardState {
     constructor(public board : Board, public turn : Turn) {
     }
 
     static initial(turn : Turn) {
-        return new State(EMPTY_BOARD, turn);
+        return new BoardState(EMPTY_BOARD, turn);
     }
 
-    step(toCoordX : number, toCoordY : number) : State {
+    step(toCoordX : number, toCoordY : number) : BoardState {
         if (this.getResult() !== "play") {
             throw new InvalidStepError("Game Over");
         }
@@ -60,7 +60,7 @@ export class State {
             throw new InvalidStepError("Occupied Cell");
         }
 
-        return new State(
+        return new BoardState(
             setMatrix(this.board, toCoordY, toCoordX, this.turn),
             nextPlayer(this.turn)
         );
@@ -101,18 +101,18 @@ export class State {
 
 
 export const Serializer = {
-    serialize(state : State) : string {
+    serialize(state : BoardState) : string {
         // use only ordered structures to ensure uniqueness, as state objects may have properties in random order.
         return JSON.stringify([state.turn, state.board]);
     },
-    unserialize(str: string) : State {
+    unserialize(str: string) : BoardState {
         const data = JSON.parse(str);
-        return new State(data[1], data[0]);
+        return new BoardState(data[1], data[0]);
     }
 };
 
 export const Transitions = {
-    getTransitionsOf(state : State) : Transition[] {
+    getTransitionsOf(state : BoardState) : Transition[] {
         const result : Transition[] = [];
         for (let y = 0; y < 3; y++) {
             for (let x = 0; x < 3; x++) {

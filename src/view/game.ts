@@ -1,10 +1,11 @@
 import {app} from "./app";
-import {State, ALL_COORDS} from "../model/state";
+import {BoardState, ALL_COORDS} from "../model/board-state";
 import {TicTacToeAI} from "../worker/ai";
+import {GameController} from "../model/game-controller";
 
 class StateWithHistory {
     constructor(
-        public game : State,
+        public game : BoardState,
         public prev : StateWithHistory | null = null
     ) {
     }
@@ -20,68 +21,45 @@ const SignImgs = {
 app.controller("TableController", [
     "$scope", "$timeout", "AiService",
     function($scope, $timeout, AiService) {
+
+        const model = new GameController(
+            "cpu", "cpu",
+            BoardState.initial("x"),
+            []
+        );
+
+        model.addEventListener("afterCpuRound", () => {
+            $scope.$apply();
+        });
+        model.addEventListener("error", e => {
+            console.error(e);
+            alert("Sorry, the game ran into an error.");
+        });
+
         $scope.allCoords = ALL_COORDS;
 
         $scope.signImgs = SignImgs;
 
         $scope.state = null;
 
-        $scope.getCellValue = coord => $scope.state.game.board[coord[0]][coord[1]];
+        $scope.getCellValue = coord => model.boardState.board[coord[0]][coord[1]];
 
         $scope.isAiRound = () => {
-            return $scope.state.game.turn == "o";
+            return $scope.model.isCpuTurn();
         };
 
-        function setState(state) {
-            $scope.state = state;
-            if ($scope.isAiRound()) {
-                scheduleAi();
-            }
-        }
 
         $scope.putSign = coord => {
-            setState(new StateWithHistory(
-                $scope.state.game.step(coord[1], coord[0]),
-                $scope.state
-            ));
-        };
-        function putAi(coord) {
-            setState(new StateWithHistory(
-                $scope.state.game.step(coord[1], coord[0]),
-                $scope.state.prev // skip ai steps in history
-            ));
+            model.putPlayerSign(coord[0], coord[1]);
         };
 
         $scope.doUndo = () => {
-            if ($scope.state.prev) {
-                setState($scope.state.prev);
-            }
+            model.undoPlayerStep();
         };
 
         $scope.doReset = () => {
-            reset();
+            model.reset();
         };
-
-        reset();
-
-        function reset() {
-            $scope.state = new StateWithHistory(State.initial("x"));
-        }
-
-        function stepAi(lastState) {
-            AiService.getWinningCategory(lastState.game).then(cat => {
-                if ($scope.state === lastState) {
-                    putAi(cat.transition);
-                }
-            });
-        }
-
-        function scheduleAi() {
-            const currentState = $scope.state;
-            $timeout(() => {
-                stepAi(currentState);
-            }, 500 + 1500 * Math.random());
-        }
     }
 ]);
 

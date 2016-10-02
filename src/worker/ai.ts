@@ -1,4 +1,4 @@
-import {State, Serializer} from "../model/state";
+import {BoardState, Serializer} from "../model/board-state";
 import {WinningCategoryData} from "../algorithm/game-contract";
 
 export class TicTacToeAI {
@@ -33,7 +33,7 @@ export class TicTacToeAI {
         });
     }
 
-    getWinningCategory(state: State) : Promise<WinningCategoryData> {
+    getWinningCategory(state: BoardState) : Promise<WinningCategoryData> {
         return this._call("getWinningCategory", Serializer.serialize(state));
     }
 }
