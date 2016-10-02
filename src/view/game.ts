@@ -56,7 +56,7 @@ app.controller("GameController",
         };
 
         $scope.doUndo = () => {
-            model.undoPlayerStep();
+            model.undoPlayerMove();
         };
 
         $scope.doReset = () => {

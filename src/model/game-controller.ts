@@ -54,7 +54,7 @@ export class GameController extends EventSource {
     LocalStorageGameStore.saveGame(this);
   }
 
-  _step(toCoordX: number, toCoordY: number): void {
+  _move(toCoordX: number, toCoordY: number): void {
     this._setBoardState(this.boardState.moveTo(toCoordX, toCoordY));
   }
 
@@ -64,7 +64,7 @@ export class GameController extends EventSource {
     }
   }
 
-  undoPlayerStep(): void {
+  undoPlayerMove(): void {
     if (this.history.length > 0) {
       const last = this.history.pop();
       this._setBoardState(last);
@@ -79,7 +79,7 @@ export class GameController extends EventSource {
 
   _handleCpuMove(winningCategory : WinningCategory, savedChangestamp : number) : void {
     if (this._changestamp === savedChangestamp) {
-      this._step(winningCategory.transition[0], winningCategory.transition[1]);
+      this._move(winningCategory.transition[0], winningCategory.transition[1]);
       this.fireEvent("afterCpuRound");
     }
   }
@@ -98,7 +98,7 @@ export class GameController extends EventSource {
   putPlayerSign(toCoordX : number, toCoordY : number) : void {
     if (this.isPlayerTurn()) {
       this.history.push(this.boardState);
-      this._step(toCoordX, toCoordY);
+      this._move(toCoordX, toCoordY);
     } else {
       throw new Error("It's CPU turn");
     }

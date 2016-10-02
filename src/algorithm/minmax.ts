@@ -2,7 +2,7 @@
 import * as utils from "../utils/arrays";
 import { WinningCategory, GameGraph, StateInspection } from "./game-contract";
 
-type StepToState<TState, TTransition, TPlayer> = {
+type EdgeToState<TState, TTransition, TPlayer> = {
     transition: TTransition,
     nextState: TState,
     category: WinningCategory<TState, TPlayer>
@@ -59,8 +59,8 @@ export class MinMax<TState, TTransition, TPlayer> {
         }
     }
 
-    _processSoonestWin(steps: StepToState[], currentPlayer: TPlayer) : StepToState | null {
-        const possibilities : StepToState[] = steps.filter(d => d.category.doesWin(currentPlayer));
+    _processWinningMove(edges: EdgeToState[], currentPlayer: TPlayer) : EdgeToState | null {
+        const possibilities : EdgeToState[] = edges.filter(d => d.category.doesWin(currentPlayer));
         if (this.randomMode) {
             return utils.getRandomItem(possibilities);
         } else {
@@ -68,8 +68,8 @@ export class MinMax<TState, TTransition, TPlayer> {
         }
     }
 
-    _processLatestTie(steps: StepToState[]) : StepToState | null {
-        const possibilities : StepToState[] = steps.filter(d => d.category.kind === "tie");
+    _processTieMove(edges: EdgeToState[]) : EdgeToState | null {
+        const possibilities : EdgeToState[] = edges.filter(d => d.category.kind === "tie");
         if (this.randomMode) {
             return utils.getRandomItem(possibilities);
         } else {
@@ -77,15 +77,15 @@ export class MinMax<TState, TTransition, TPlayer> {
         }
     }
 
-    _processLatestLosing(steps: StepToState[]) : StepToState | null {
+    _processLosingMove(edges: EdgeToState[]) : EdgeToState | null {
         if (this.randomMode) {
-            return utils.getRandomItem(steps);
+            return utils.getRandomItem(edges);
         } else {
-            return utils.maxBy(steps, d => d.category.distance, null);
+            return utils.maxBy(edges, d => d.category.distance, null);
         }
     }
 
-    _calculateOutgoingSteps(state: TState) : StepToState[] {
+    _calculateNextEdges(state: TState) : EdgeToState[] {
         const transitions : TTransition[] = this.graph.transitions(state);
         return transitions.map(transition => {
             const nextState = this.graph.apply(state, transition);
@@ -95,14 +95,14 @@ export class MinMax<TState, TTransition, TPlayer> {
     }
 
     _processNonFinishedState(state: TState, inspection: StateInspection) : WinningCategory<TPlayer, TTransition> {
-        const steps: StepToState[] = this._calculateOutgoingSteps(state);
-        let step: StepToState = this._processSoonestWin(steps, inspection.currentPlayer);
+        const edges: EdgeToState[] = this._calculateNextEdges(state);
+        let edge: EdgeToState = this._processWinningMove(edges, inspection.currentPlayer);
         // Otherwise try to postpone the tie -- other players might make a mistake
-        step = step || this._processLatestTie(steps);
+        edge = edge || this._processTieMove(edges);
         // Don't check endless kind here, treat it as some other player wins.
         // Try to postpone the winning of the other players -- other players might make a mistake
-        step = step || this._processLatestLosing(steps);
-        return extendCategory(step.category, step.transition);
+        edge = edge || this._processLosingMove(edges);
+        return extendCategory(edge.category, edge.transition);
     }
 
     _processWinningCategoryOf(state: TState, nodeData: NodeData<TState>) : WinningCategory<TPlayer, TTransition> {
