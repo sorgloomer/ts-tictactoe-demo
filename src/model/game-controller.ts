@@ -47,11 +47,11 @@ export class GameController extends EventSource {
     this._changestamp++;
     const result : Result = boardState.getResult();
     if (result === "play") {
-      LocalStorageGameStore.saveGame(this);
       this._handleIfCpuRound();
     } else {
       this.fireEvent("gameover", result);
     }
+    LocalStorageGameStore.saveGame(this);
   }
 
   _step(toCoordX: number, toCoordY: number): void {

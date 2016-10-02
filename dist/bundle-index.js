@@ -276,12 +276,12 @@ var GameController = (function (_super) {
         this._changestamp++;
         var result = boardState.getResult();
         if (result === "play") {
-            LocalStorageGameStore.saveGame(this);
             this._handleIfCpuRound();
         }
         else {
             this.fireEvent("gameover", result);
         }
+        LocalStorageGameStore.saveGame(this);
     };
     GameController.prototype._step = function (toCoordX, toCoordY) {
         this._setBoardState(this.boardState.step(toCoordX, toCoordY));

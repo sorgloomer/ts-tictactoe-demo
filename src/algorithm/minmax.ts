@@ -33,8 +33,10 @@ export class MinMax<TState, TTransition, TPlayer> {
 
     states : Map<string, NodeData<TState, TPlayer, TTransition>> = new Map();
 
+
     constructor(
-        public graph : GameGraph<TState, TTransition, TPlayer>
+        public graph : GameGraph<TState, TTransition, TPlayer>,
+        public randomMode : boolean = true
     ) {
     }
 
@@ -58,19 +60,29 @@ export class MinMax<TState, TTransition, TPlayer> {
     }
 
     _processSoonestWin(steps: StepToState[], currentPlayer: TPlayer) : StepToState | null {
-        return utils.minBy(
-            steps.filter(d => d.category.doesWin(currentPlayer)),
-            d => d.category.distance,
-            null
-        );
+        const possibilities : StepToState[] = steps.filter(d => d.category.doesWin(currentPlayer));
+        if (this.randomMode) {
+            return utils.getRandomItem(possibilities);
+        } else {
+            return utils.minBy(possibilities, d => d.category.distance, null);
+        }
     }
 
     _processLatestTie(steps: StepToState[]) : StepToState | null {
-        return utils.maxBy(
-            steps.filter(d => d.category.kind === "tie"),
-            d => d.category.distance,
-            null
-        );
+        const possibilities : StepToState[] = steps.filter(d => d.category.kind === "tie");
+        if (this.randomMode) {
+            return utils.getRandomItem(possibilities);
+        } else {
+            return utils.maxBy(possibilities, d => d.category.distance, null);
+        }
+    }
+
+    _processLatestLosing(steps: StepToState[]) : StepToState | null {
+        if (this.randomMode) {
+            return utils.getRandomItem(steps);
+        } else {
+            return utils.maxBy(steps, d => d.category.distance, null);
+        }
     }
 
     _calculateOutgoingSteps(state: TState) : StepToState[] {
@@ -89,7 +101,7 @@ export class MinMax<TState, TTransition, TPlayer> {
         step = step || this._processLatestTie(steps);
         // Don't check endless kind here, treat it as some other player wins.
         // Try to postpone the winning of the other players -- other players might make a mistake
-        step = step || utils.maxBy(steps, d => d.category.distance);
+        step = step || this._processLatestLosing(steps);
         return extendCategory(step.category, step.transition);
     }
 

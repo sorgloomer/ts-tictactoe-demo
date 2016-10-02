@@ -60,6 +60,14 @@ function maxBy(arr, mapping, def) {
     }
     return bestItem;
 }
+function getRandomItem(arr, def) {
+    if (def === void 0) { def = null; }
+    if (arr.length < 1) {
+        return def;
+    }
+    var index = Math.floor(Math.random() * arr.length);
+    return arr[index];
+}
 
 var WinningCategory = (function () {
     function WinningCategory(kind, player, distance, transition) {
@@ -89,8 +97,10 @@ var NodeData = (function () {
     return NodeData;
 }());
 var MinMax = (function () {
-    function MinMax(graph) {
+    function MinMax(graph, randomMode) {
+        if (randomMode === void 0) { randomMode = true; }
         this.graph = graph;
+        this.randomMode = randomMode;
         this.states = new Map();
     }
     MinMax.prototype.getNodeData = function (state) {
@@ -112,10 +122,30 @@ var MinMax = (function () {
         }
     };
     MinMax.prototype._processSoonestWin = function (steps, currentPlayer) {
-        return minBy(steps.filter(function (d) { return d.category.doesWin(currentPlayer); }), function (d) { return d.category.distance; }, null);
+        var possibilities = steps.filter(function (d) { return d.category.doesWin(currentPlayer); });
+        if (this.randomMode) {
+            return getRandomItem(possibilities);
+        }
+        else {
+            return minBy(possibilities, function (d) { return d.category.distance; }, null);
+        }
     };
     MinMax.prototype._processLatestTie = function (steps) {
-        return maxBy(steps.filter(function (d) { return d.category.kind === "tie"; }), function (d) { return d.category.distance; }, null);
+        var possibilities = steps.filter(function (d) { return d.category.kind === "tie"; });
+        if (this.randomMode) {
+            return getRandomItem(possibilities);
+        }
+        else {
+            return maxBy(possibilities, function (d) { return d.category.distance; }, null);
+        }
+    };
+    MinMax.prototype._processLatestLosing = function (steps) {
+        if (this.randomMode) {
+            return getRandomItem(steps);
+        }
+        else {
+            return maxBy(steps, function (d) { return d.category.distance; }, null);
+        }
     };
     MinMax.prototype._calculateOutgoingSteps = function (state) {
         var _this = this;
@@ -133,7 +163,7 @@ var MinMax = (function () {
         step = step || this._processLatestTie(steps);
         // Don't check endless kind here, treat it as some other player wins.
         // Try to postpone the winning of the other players -- other players might make a mistake
-        step = step || maxBy(steps, function (d) { return d.category.distance; });
+        step = step || this._processLatestLosing(steps);
         return extendCategory(step.category, step.transition);
     };
     MinMax.prototype._processWinningCategoryOf = function (state, nodeData) {

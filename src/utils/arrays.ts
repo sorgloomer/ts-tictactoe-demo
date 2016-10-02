@@ -80,6 +80,14 @@ export function maxBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, de
     return bestItem;
 }
 
+export function getRandomItem<T>(arr : T[], def : T = null) : T {
+    if (arr.length < 1) {
+        return def;
+    }
+    const index = Math.floor(Math.random() * arr.length);
+    return arr[index];
+}
+
 export function mapToObject<T, U>(arr: T[], mapping: ArrayMapping<T, [string, U]>) : {[key: string]: U} {
     const result = {};
     arr.map(mapping).forEach(([k, v]) => { result[k] = v; });
