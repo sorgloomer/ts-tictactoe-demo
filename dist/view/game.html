@@ -1,13 +1,21 @@
 <div class="container">
   <div class="info-bar">
-    <span ng-class="{active:isTurnOf('x')}">Player <img class="inline-sign" src="img/sign-x.svg"></span>
-    <span ng-class="{active:isTurnOf('o')}">Player <img class="inline-sign" src="img/sign-o.svg"></span>
+    <span ng-class="{active:isTurnOf('x')}">
+      Player <img class="inline-sign" src="img/sign-x.svg">
+      <img class="inline-sign" src="img/user-silhouette.svg" ng-show="getPlayerType('x')=='player'">
+      <img class="inline-sign" src="img/microchip-variant-silhouette.svg" ng-show="getPlayerType('x')=='cpu'">
+    </span>
+    <span ng-class="{active:isTurnOf('o')}">
+      Player <img class="inline-sign" src="img/sign-o.svg">
+      <img class="inline-sign" src="img/user-silhouette.svg" ng-show="getPlayerType('o')=='player'">
+      <img class="inline-sign" src="img/microchip-variant-silhouette.svg" ng-show="getPlayerType('o')=='cpu'">
+    </span>
   </div>
   <div class="game-area">
     <div class="game-table">
       <div class="inner">
         <div class="game-cell" ng-repeat="coord in allCoords" ng-click="putSign(coord)">
-          <img class="sign" ng-src="{{signImgs[getCellValue(coord)]}}">
+          <img class="sign" tt-sign="getCellValue(coord)">
         </div>
       </div>
     </div>

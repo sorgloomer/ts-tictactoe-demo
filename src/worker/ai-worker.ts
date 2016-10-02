@@ -4,8 +4,8 @@ import { StateInspection } from "../algorithm/game-contract";
 import {BoardState, Turn, Transition, Serializer, Transitions} from "../model/board-state";
 
 const minmax = new MinMax<BoardState, Transition, Turn>({
-  apply(state: BoardState, transition: Transition) : BoardState {
-    return state.moveTo(transition[0], transition[1]);
+  apply(state: BoardState, [coordx, coordy]: Transition) : BoardState {
+    return state.moveTo(coordx, coordy);
   },
   inspect(state : BoardState) : StateInspection {
     const result = state.getResult();

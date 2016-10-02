@@ -4,7 +4,7 @@ import {TicTacToeAI} from "../worker/ai";
 import {GameController} from "../model/game-controller";
 import {LocalStorageGameStore} from "../model/game-store";
 
-// TODO: wire ng-annotate
+// TODO: use ng-annotate
 app.controller("MenuController",
     function($scope) {
       $scope.canContinue = LocalStorageGameStore.hasSavedGame();

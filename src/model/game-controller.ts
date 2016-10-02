@@ -24,15 +24,15 @@ export class GameController extends EventSource {
               public boardState: BoardState,
               public history: BoardState[]) {
     super(["afterCpuRound", "error", "gameover"]);
-    this._handleIfCpuRound();
+    this._actualizeNewState();
+  }
+
+  getPlayerType(player : Turn) {
+    return player === "o" ? this.playero : this.playerx;
   }
 
   isTurnOf(type: PlayerType): boolean {
-    if (this.boardState.turn === "o") {
-      return this.playero === type;
-    } else {
-      return this.playerx === type;
-    }
+    return this.getPlayerType(this.boardState.turn) === type;
   }
 
   isPlayerTurn(): boolean {
@@ -42,16 +42,20 @@ export class GameController extends EventSource {
     return this.isTurnOf("cpu");
   }
 
-  _setBoardState(boardState: BoardState): void {
-    this.boardState = boardState;
-    this._changestamp++;
-    const result : Result = boardState.getResult();
+  _actualizeNewState() : void {
+    const result : Result = this.boardState.getResult();
     if (result === "play") {
       this._handleIfCpuRound();
     } else {
       this.fireEvent("gameover", result);
     }
     LocalStorageGameStore.saveGame(this);
+  }
+
+  _setBoardState(boardState: BoardState): void {
+    this.boardState = boardState;
+    this._changestamp++;
+    this._actualizeNewState();
   }
 
   _move(toCoordX: number, toCoordY: number): void {
@@ -79,7 +83,8 @@ export class GameController extends EventSource {
 
   _handleCpuMove(winningCategory : WinningCategory, savedChangestamp : number) : void {
     if (this._changestamp === savedChangestamp) {
-      this._move(winningCategory.transition[0], winningCategory.transition[1]);
+      const [movex, movey] = winningCategory.transition;
+      this._move(movex, movey);
       this.fireEvent("afterCpuRound");
     }
   }
@@ -87,7 +92,6 @@ export class GameController extends EventSource {
   _handleCpuRound() : void {
     const savedChangestamp = this._changestamp;
     this._calculateCpuMove().then((winningCategory: WinningCategory) => {
-      console.log(winningCategory);
       this._handleCpuMove(winningCategory, savedChangestamp);
     }).then(null, e => {
       this.fireEvent("error", e);

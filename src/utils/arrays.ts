@@ -46,16 +46,21 @@ export function mapRange<T>(length: int, factory: (index: int) => T) : T[] {
     return result;
 }
 
-export function minBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T = null) {
+
+function _selectBy<T, U>(
+    arr: T[], mapping: ArrayMapping<T, U>,
+    def: T,
+    better: (prev:U, current:U) => boolean
+) {
     if (arr.length < 1) {
         return def;
     }
-    var bestItem = arr[0];
-    var bestValue = mapping(bestItem, 0, arr);
+    var bestItem : T = arr[0];
+    var bestValue : U = mapping(bestItem, 0, arr);
     for (let i = 1; i < arr.length; i++) {
         const currentItem = arr[i];
         const currentValue = mapping(currentItem, i, arr);
-        if (currentValue < bestValue) {
+        if (better(bestValue, currentValue)) {
             bestItem = currentItem;
             bestValue = currentValue;
         }
@@ -63,21 +68,12 @@ export function minBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, de
     return bestItem;
 }
 
+export function minBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T = null) {
+    return _selectBy(arr, mapping, def, (prev, current) => current < prev);
+}
+
 export function maxBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T = null) {
-    if (arr.length < 1) {
-        return def;
-    }
-    var bestItem = arr[0];
-    var bestValue = mapping(bestItem, 0, arr);
-    for (let i = 1; i < arr.length; i++) {
-        const currentItem = arr[i];
-        const currentValue = mapping(currentItem, i, arr);
-        if (currentValue > bestValue) {
-            bestItem = currentItem;
-            bestValue = currentValue;
-        }
-    }
-    return bestItem;
+    return _selectBy(arr, mapping, def, (prev, current) => current > prev);
 }
 
 export function getRandomItem<T>(arr : T[], def : T = null) : T {

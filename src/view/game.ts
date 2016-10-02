@@ -3,23 +3,17 @@ import {BoardState, Turn} from "../model/board-state";
 import {GameController, PlayerType} from "../model/game-controller";
 import {LocalStorageGameStore} from "../model/game-store";
 
-const SignImgs = {
-    "": "img/empty.svg",
-    "o": "img/sign-o.svg",
-    "x": "img/sign-x.svg"
-};
-
 const ALL_COORDS = [
     [0,0], [1,0], [2,0],
     [0,1], [1,1], [2,1],
     [0,2], [1,2], [2,2]
 ];
 
-
 const FIRST_PLAYER : Turn = "x";
-// TODO: wire ng-annotate
+
+// TODO: use ng-annotate
 app.controller("GameController",
-    function($scope, $routeParams) {
+    function($scope, $routeParams, $location) {
 
         const model : GameController = determineModel();
 
@@ -37,7 +31,7 @@ app.controller("GameController",
 
         $scope.state = null;
 
-        $scope.getCellValue = coord => model.boardState.board[coord[1]][coord[0]];
+        $scope.getCellValue = ([coordx, coordy]) => model.boardState.board[coordy][coordx];
 
         $scope.isAiRound = false;
         $scope.$watch(
@@ -51,8 +45,8 @@ app.controller("GameController",
             newValue => { $scope.gameResult = newValue; }
         );
 
-        $scope.putSign = coord => {
-            model.putPlayerSign(coord[0], coord[1]);
+        $scope.putSign = ([coordx, coordy]) => {
+            model.putPlayerSign(coordx, coordy);
         };
 
         $scope.doUndo = () => {
@@ -65,6 +59,13 @@ app.controller("GameController",
         $scope.isTurnOf = (player : Turn) => {
             return model.boardState.getResult() === "play" && model.boardState.turn == player;
         };
+
+        $scope.getPlayerType = (player : Turn) : PlayerType => {
+            return model.getPlayerType(player);
+        };
+
+        // Don't start new game on refresh
+        $location.search("mode", undefined);
 
         function determineModel() : GameController {
             switch ($routeParams.mode) {
@@ -86,3 +87,23 @@ app.controller("GameController",
         }
     }
 );
+
+
+const SignImgs = {
+    "o": "img/sign-o.svg",
+    "x": "img/sign-x.svg"
+};
+
+app.directive("ttSign", function() {
+    return {
+        restrict: "A",
+        link(scope, elem, attrs) {
+            scope.$watch(attrs.ttSign, function(newValue) {
+                if (newValue) {
+                    elem.attr("src", SignImgs[newValue]);
+                }
+                elem.toggleClass("filled", !!newValue);
+            });
+        }
+    };
+});

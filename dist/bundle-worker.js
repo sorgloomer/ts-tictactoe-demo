@@ -1,3 +1,25 @@
+function __extends(d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+
+var WinningCategory = (function () {
+    function WinningCategory(kind, player, distance, transition) {
+        if (player === void 0) { player = null; }
+        if (distance === void 0) { distance = 0; }
+        if (transition === void 0) { transition = null; }
+        this.kind = kind;
+        this.player = player;
+        this.distance = distance;
+        this.transition = transition;
+    }
+    WinningCategory.prototype.doesWin = function (player) {
+        return this.kind === "winning" && this.player === player;
+    };
+    return WinningCategory;
+}());
+
 function any(arr, pred) {
     for (var i = 0; i < arr.length; i++) {
         if (pred(arr[i], i, arr)) {
@@ -26,8 +48,7 @@ function everySameOrDefault(arr, def) {
     return first;
 }
 
-function minBy(arr, mapping, def) {
-    if (def === void 0) { def = null; }
+function _selectBy(arr, mapping, def, better) {
     if (arr.length < 1) {
         return def;
     }
@@ -36,29 +57,20 @@ function minBy(arr, mapping, def) {
     for (var i = 1; i < arr.length; i++) {
         var currentItem = arr[i];
         var currentValue = mapping(currentItem, i, arr);
-        if (currentValue < bestValue) {
+        if (better(bestValue, currentValue)) {
             bestItem = currentItem;
             bestValue = currentValue;
         }
     }
     return bestItem;
 }
+function minBy(arr, mapping, def) {
+    if (def === void 0) { def = null; }
+    return _selectBy(arr, mapping, def, function (prev, current) { return current < prev; });
+}
 function maxBy(arr, mapping, def) {
     if (def === void 0) { def = null; }
-    if (arr.length < 1) {
-        return def;
-    }
-    var bestItem = arr[0];
-    var bestValue = mapping(bestItem, 0, arr);
-    for (var i = 1; i < arr.length; i++) {
-        var currentItem = arr[i];
-        var currentValue = mapping(currentItem, i, arr);
-        if (currentValue > bestValue) {
-            bestItem = currentItem;
-            bestValue = currentValue;
-        }
-    }
-    return bestItem;
+    return _selectBy(arr, mapping, def, function (prev, current) { return current > prev; });
 }
 function getRandomItem(arr, def) {
     if (def === void 0) { def = null; }
@@ -69,21 +81,61 @@ function getRandomItem(arr, def) {
     return arr[index];
 }
 
-var WinningCategory = (function () {
-    function WinningCategory(kind, player, distance, transition) {
-        if (player === void 0) { player = null; }
-        if (distance === void 0) { distance = 0; }
-        if (transition === void 0) { transition = null; }
-        this.kind = kind;
-        this.player = player;
-        this.distance = distance;
-        this.transition = transition;
+var MoveSelectorBase = (function () {
+    function MoveSelectorBase() {
     }
-    WinningCategory.prototype.doesWin = function (player) {
-        return this.kind === "winning" && this.player === player;
+    MoveSelectorBase.prototype.getWinningMoves = function (edges, currentPlayer) {
+        return edges.filter(function (d) { return d.category.doesWin(currentPlayer); });
     };
-    return WinningCategory;
+    MoveSelectorBase.prototype.getTieMoves = function (edges) {
+        return edges.filter(function (d) { return d.category.kind === "tie"; });
+    };
+    MoveSelectorBase.prototype.selectMove = function (edges, currentPlayer) {
+        var edge = this.selectWinningMove(edges, currentPlayer);
+        edge = edge || this.selectTieMove(edges);
+        return edge || this.selectLosingMove(edges);
+    };
+    return MoveSelectorBase;
 }());
+var RandomMoveSelector = (function (_super) {
+    __extends(RandomMoveSelector, _super);
+    function RandomMoveSelector() {
+        _super.apply(this, arguments);
+    }
+    RandomMoveSelector.prototype.selectWinningMove = function (edges, currentPlayer) {
+        var possibilities = this.getWinningMoves(edges, currentPlayer);
+        return getRandomItem(possibilities);
+    };
+    RandomMoveSelector.prototype.selectTieMove = function (edges) {
+        var possibilities = this.getTieMoves(edges);
+        return getRandomItem(possibilities);
+    };
+    RandomMoveSelector.prototype.selectLosingMove = function (edges) {
+        return getRandomItem(edges);
+    };
+    return RandomMoveSelector;
+}(MoveSelectorBase));
+var SpeculatingMoveSelector = (function (_super) {
+    __extends(SpeculatingMoveSelector, _super);
+    function SpeculatingMoveSelector() {
+        _super.apply(this, arguments);
+    }
+    SpeculatingMoveSelector.prototype.selectWinningMove = function (edges, currentPlayer) {
+        var possibilities = this.getWinningMoves(edges, currentPlayer);
+        return minBy(possibilities, categoryDistanceOf, null);
+    };
+    SpeculatingMoveSelector.prototype.selectTieMove = function (edges) {
+        var possibilities = this.getTieMoves(edges);
+        return maxBy(possibilities, categoryDistanceOf, null);
+    };
+    SpeculatingMoveSelector.prototype.selectLosingMove = function (edges) {
+        return maxBy(edges, categoryDistanceOf, null);
+    };
+    return SpeculatingMoveSelector;
+}(MoveSelectorBase));
+function categoryDistanceOf(edge) {
+    return edge.category.distance;
+}
 
 var ENDLESS = new WinningCategory("endless");
 function extendCategory(category, transition) {
@@ -97,10 +149,10 @@ var NodeData = (function () {
     return NodeData;
 }());
 var MinMax = (function () {
-    function MinMax(graph, randomMode) {
-        if (randomMode === void 0) { randomMode = true; }
+    function MinMax(graph, _stepSelector) {
+        if (_stepSelector === void 0) { _stepSelector = new RandomMoveSelector(); }
         this.graph = graph;
-        this.randomMode = randomMode;
+        this._stepSelector = _stepSelector;
         this.states = new Map();
     }
     MinMax.prototype.getNodeData = function (state) {
@@ -121,33 +173,7 @@ var MinMax = (function () {
             return new WinningCategory("winning", inspection.winnerPlayer);
         }
     };
-    MinMax.prototype._processSoonestWin = function (steps, currentPlayer) {
-        var possibilities = steps.filter(function (d) { return d.category.doesWin(currentPlayer); });
-        if (this.randomMode) {
-            return getRandomItem(possibilities);
-        }
-        else {
-            return minBy(possibilities, function (d) { return d.category.distance; }, null);
-        }
-    };
-    MinMax.prototype._processLatestTie = function (steps) {
-        var possibilities = steps.filter(function (d) { return d.category.kind === "tie"; });
-        if (this.randomMode) {
-            return getRandomItem(possibilities);
-        }
-        else {
-            return maxBy(possibilities, function (d) { return d.category.distance; }, null);
-        }
-    };
-    MinMax.prototype._processLatestLosing = function (steps) {
-        if (this.randomMode) {
-            return getRandomItem(steps);
-        }
-        else {
-            return maxBy(steps, function (d) { return d.category.distance; }, null);
-        }
-    };
-    MinMax.prototype._calculateOutgoingSteps = function (state) {
+    MinMax.prototype._calculateNextEdges = function (state) {
         var _this = this;
         var transitions = this.graph.transitions(state);
         return transitions.map(function (transition) {
@@ -157,14 +183,9 @@ var MinMax = (function () {
         });
     };
     MinMax.prototype._processNonFinishedState = function (state, inspection) {
-        var steps = this._calculateOutgoingSteps(state);
-        var step = this._processSoonestWin(steps, inspection.currentPlayer);
-        // Otherwise try to postpone the tie -- other players might make a mistake
-        step = step || this._processLatestTie(steps);
-        // Don't check endless kind here, treat it as some other player wins.
-        // Try to postpone the winning of the other players -- other players might make a mistake
-        step = step || this._processLatestLosing(steps);
-        return extendCategory(step.category, step.transition);
+        var edges = this._calculateNextEdges(state);
+        var edge = this._stepSelector.selectMove(edges, inspection.currentPlayer);
+        return extendCategory(edge.category, edge.transition);
     };
     MinMax.prototype._processWinningCategoryOf = function (state, nodeData) {
         var inspection = this.graph.inspect(state);
@@ -223,13 +244,17 @@ var DIAGONALS = [
     [0, 0, 1, 1],
     [2, 0, -1, 1]
 ];
-
-var InvalidStepError = (function () {
-    function InvalidStepError(message) {
+var ALL_COORDS = [
+    [0, 0], [0, 1], [0, 2],
+    [1, 0], [1, 1], [1, 2],
+    [2, 0], [2, 1], [2, 2]
+];
+var InvalidMoveError = (function () {
+    function InvalidMoveError(message) {
         this.message = message;
-        this.name = "InvalidStepError";
+        this.name = "InvalidMoveError";
     }
-    return InvalidStepError;
+    return InvalidMoveError;
 }());
 function nextPlayer(currentPlayer) {
     return currentPlayer === "o" ? "x" : "o";
@@ -246,16 +271,16 @@ var BoardState = (function () {
     BoardState.initial = function (turn) {
         return new BoardState(EMPTY_BOARD, turn);
     };
-    BoardState.prototype.step = function (toCoordX, toCoordY) {
+    BoardState.prototype.moveTo = function (toCoordX, toCoordY) {
         if (this.getResult() !== "play") {
-            throw new InvalidStepError("Game Over");
+            throw new InvalidMoveError("Game Over");
         }
         if (this.getCell(toCoordX, toCoordY) !== "") {
-            throw new InvalidStepError("Occupied Cell");
+            throw new InvalidMoveError("Occupied Cell");
         }
         return new BoardState(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
-    BoardState.prototype.hasNoMoreSteps = function () {
+    BoardState.prototype.hasNoMoreMoves = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });
     };
     BoardState.prototype.getCell = function (x, y) {
@@ -278,7 +303,7 @@ var BoardState = (function () {
     };
     BoardState.prototype.getResult = function () {
         var winner = this.checkWinner();
-        if (winner === "play" && this.hasNoMoreSteps()) {
+        if (winner === "play" && this.hasNoMoreMoves()) {
             return "tie";
         }
         return winner;
@@ -291,27 +316,23 @@ var Serializer = {
         return JSON.stringify([state.turn, state.board]);
     },
     unserialize: function (str) {
-        var data = JSON.parse(str);
-        return new BoardState(data[1], data[0]);
+        var _a = JSON.parse(str), turn = _a[0], board = _a[1];
+        return new BoardState(board, turn);
     }
 };
 var Transitions = {
     getTransitionsOf: function (state) {
-        var result = [];
-        for (var y = 0; y < 3; y++) {
-            for (var x = 0; x < 3; x++) {
-                if (state.getCell(x, y) === "") {
-                    result.push([x, y]);
-                }
-            }
-        }
-        return result;
+        return ALL_COORDS.filter(function (_a) {
+            var x = _a[0], y = _a[1];
+            return state.getCell(x, y) === "";
+        });
     }
 };
 
 var minmax = new MinMax({
-    apply: function (state, transition) {
-        return state.step(transition[0], transition[1]);
+    apply: function (state, _a) {
+        var coordx = _a[0], coordy = _a[1];
+        return state.moveTo(coordx, coordy);
     },
     inspect: function (state) {
         var result = state.getResult();

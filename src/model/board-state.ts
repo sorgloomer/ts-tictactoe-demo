@@ -107,21 +107,13 @@ export const Serializer = {
         return JSON.stringify([state.turn, state.board]);
     },
     unserialize(str: string) : BoardState {
-        const data = JSON.parse(str);
-        return new BoardState(data[1], data[0]);
+        const [turn, board] : [Turn, Board] = JSON.parse(str);
+        return new BoardState(board, turn);
     }
 };
 
 export const Transitions = {
     getTransitionsOf(state : BoardState) : Transition[] {
-        const result : Transition[] = [];
-        for (let y = 0; y < 3; y++) {
-            for (let x = 0; x < 3; x++) {
-                if (state.getCell(x, y) === "") {
-                    result.push([x, y]);
-                }
-            }
-        }
-        return result;
+        return ALL_COORDS.filter(([x, y]) => state.getCell(x, y) === "");
     }
 };

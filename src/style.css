@@ -37,6 +37,12 @@ body, .btn {
 .sign {
     width: 90%;
     height: 90%;
+    transition: opacity 500ms ease;
+    opacity: 0;
+}
+
+.sign.filled {
+    opacity: 1;
 }
 
 .container {
@@ -57,7 +63,7 @@ body, .btn {
     border: black 2px solid;
     /* border-radius: 25px; */ /* no-one likes radius in 2016 */
     padding: 12px;
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 300ms ease;
 }
 
 .info-bar span {
@@ -140,12 +146,11 @@ body, .btn {
     box-shadow: #222222 0 0 12px 0;
     font-size: 200%;
     text-align: center;
-
-    transition: opacity 100ms linear;
+    transition: opacity 500ms ease;
 }
 
 .result-dialog:hover {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .result-dialog .inline-sign {
@@ -156,4 +161,12 @@ body, .btn {
 
 .dialog-title {
     font-weight: bold;
+}
+
+.footer-notice {
+    position: absolute;
+    float: right;
+    bottom: 3px;
+    right: 3px;
+    font-size: 0.35em;
 }

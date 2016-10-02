@@ -11,11 +11,13 @@ app.config([
         $routeProvider.
             when("/game", {
             templateUrl: "view/game.html",
-            controller: "GameController"
+            controller: "GameController",
+            reloadOnSearch: false
         }).
             when("/menu", {
             templateUrl: "view/menu.html",
-            controller: "MenuController"
+            controller: "MenuController",
+            reloadOnSearch: false
         }).
             otherwise("/menu");
     }
@@ -49,6 +51,23 @@ function everySameOrDefault(arr, def) {
     return first;
 }
 
+function _selectBy(arr, mapping, def, better) {
+    if (arr.length < 1) {
+        return def;
+    }
+    var bestItem = arr[0];
+    var bestValue = mapping(bestItem, 0, arr);
+    for (var i = 1; i < arr.length; i++) {
+        var currentItem = arr[i];
+        var currentValue = mapping(currentItem, i, arr);
+        if (better(bestValue, currentValue)) {
+            bestItem = currentItem;
+            bestValue = currentValue;
+        }
+    }
+    return bestItem;
+}
+
 function cloneArray(arr) {
     return Array.prototype.slice.call(arr, 0);
 }
@@ -77,13 +96,17 @@ var DIAGONALS = [
     [0, 0, 1, 1],
     [2, 0, -1, 1]
 ];
-
-var InvalidStepError = (function () {
-    function InvalidStepError(message) {
+var ALL_COORDS$1 = [
+    [0, 0], [0, 1], [0, 2],
+    [1, 0], [1, 1], [1, 2],
+    [2, 0], [2, 1], [2, 2]
+];
+var InvalidMoveError = (function () {
+    function InvalidMoveError(message) {
         this.message = message;
-        this.name = "InvalidStepError";
+        this.name = "InvalidMoveError";
     }
-    return InvalidStepError;
+    return InvalidMoveError;
 }());
 function nextPlayer(currentPlayer) {
     return currentPlayer === "o" ? "x" : "o";
@@ -100,16 +123,16 @@ var BoardState = (function () {
     BoardState.initial = function (turn) {
         return new BoardState(EMPTY_BOARD, turn);
     };
-    BoardState.prototype.step = function (toCoordX, toCoordY) {
+    BoardState.prototype.moveTo = function (toCoordX, toCoordY) {
         if (this.getResult() !== "play") {
-            throw new InvalidStepError("Game Over");
+            throw new InvalidMoveError("Game Over");
         }
         if (this.getCell(toCoordX, toCoordY) !== "") {
-            throw new InvalidStepError("Occupied Cell");
+            throw new InvalidMoveError("Occupied Cell");
         }
         return new BoardState(setMatrix(this.board, toCoordY, toCoordX, this.turn), nextPlayer(this.turn));
     };
-    BoardState.prototype.hasNoMoreSteps = function () {
+    BoardState.prototype.hasNoMoreMoves = function () {
         return all(this.board, function (row) { return all(row, function (cell) { return cell !== ""; }); });
     };
     BoardState.prototype.getCell = function (x, y) {
@@ -132,7 +155,7 @@ var BoardState = (function () {
     };
     BoardState.prototype.getResult = function () {
         var winner = this.checkWinner();
-        if (winner === "play" && this.hasNoMoreSteps()) {
+        if (winner === "play" && this.hasNoMoreMoves()) {
             return "tie";
         }
         return winner;
@@ -145,8 +168,8 @@ var Serializer = {
         return JSON.stringify([state.turn, state.board]);
     },
     unserialize: function (str) {
-        var data = JSON.parse(str);
-        return new BoardState(data[1], data[0]);
+        var _a = JSON.parse(str), turn = _a[0], board = _a[1];
+        return new BoardState(board, turn);
     }
 };
 
@@ -256,15 +279,13 @@ var GameController = (function (_super) {
         this.boardState = boardState;
         this.history = history;
         this._changestamp = 0;
-        this._handleIfCpuRound();
+        this._actualizeNewState();
     }
+    GameController.prototype.getPlayerType = function (player) {
+        return player === "o" ? this.playero : this.playerx;
+    };
     GameController.prototype.isTurnOf = function (type) {
-        if (this.boardState.turn === "o") {
-            return this.playero === type;
-        }
-        else {
-            return this.playerx === type;
-        }
+        return this.getPlayerType(this.boardState.turn) === type;
     };
     GameController.prototype.isPlayerTurn = function () {
         return this.isTurnOf("player");
@@ -272,10 +293,8 @@ var GameController = (function (_super) {
     GameController.prototype.isCpuTurn = function () {
         return this.isTurnOf("cpu");
     };
-    GameController.prototype._setBoardState = function (boardState) {
-        this.boardState = boardState;
-        this._changestamp++;
-        var result = boardState.getResult();
+    GameController.prototype._actualizeNewState = function () {
+        var result = this.boardState.getResult();
         if (result === "play") {
             this._handleIfCpuRound();
         }
@@ -284,15 +303,20 @@ var GameController = (function (_super) {
         }
         LocalStorageGameStore.saveGame(this);
     };
-    GameController.prototype._step = function (toCoordX, toCoordY) {
-        this._setBoardState(this.boardState.step(toCoordX, toCoordY));
+    GameController.prototype._setBoardState = function (boardState) {
+        this.boardState = boardState;
+        this._changestamp++;
+        this._actualizeNewState();
+    };
+    GameController.prototype._move = function (toCoordX, toCoordY) {
+        this._setBoardState(this.boardState.moveTo(toCoordX, toCoordY));
     };
     GameController.prototype._handleIfCpuRound = function () {
         if (this.isCpuTurn()) {
             this._handleCpuRound();
         }
     };
-    GameController.prototype.undoPlayerStep = function () {
+    GameController.prototype.undoPlayerMove = function () {
         if (this.history.length > 0) {
             var last = this.history.pop();
             this._setBoardState(last);
@@ -306,7 +330,8 @@ var GameController = (function (_super) {
     };
     GameController.prototype._handleCpuMove = function (winningCategory, savedChangestamp) {
         if (this._changestamp === savedChangestamp) {
-            this._step(winningCategory.transition[0], winningCategory.transition[1]);
+            var _a = winningCategory.transition, movex = _a[0], movey = _a[1];
+            this._move(movex, movey);
             this.fireEvent("afterCpuRound");
         }
     };
@@ -314,7 +339,6 @@ var GameController = (function (_super) {
         var _this = this;
         var savedChangestamp = this._changestamp;
         this._calculateCpuMove().then(function (winningCategory) {
-            console.log(winningCategory);
             _this._handleCpuMove(winningCategory, savedChangestamp);
         }).then(null, function (e) {
             _this.fireEvent("error", e);
@@ -324,7 +348,7 @@ var GameController = (function (_super) {
     GameController.prototype.putPlayerSign = function (toCoordX, toCoordY) {
         if (this.isPlayerTurn()) {
             this.history.push(this.boardState);
-            this._step(toCoordX, toCoordY);
+            this._move(toCoordX, toCoordY);
         }
         else {
             throw new Error("It's CPU turn");
@@ -351,19 +375,14 @@ var GameControllerSerializer = {
     }
 };
 
-var SignImgs = {
-    "": "img/empty.svg",
-    "o": "img/sign-o.svg",
-    "x": "img/sign-x.svg"
-};
 var ALL_COORDS$$1 = [
     [0, 0], [1, 0], [2, 0],
     [0, 1], [1, 1], [2, 1],
     [0, 2], [1, 2], [2, 2]
 ];
 var FIRST_PLAYER = "x";
-// TODO: wire ng-annotate
-app.controller("GameController", function ($scope, $routeParams) {
+// TODO: use ng-annotate
+app.controller("GameController", function ($scope, $routeParams, $location) {
     var model = determineModel();
     model.addEventListener("afterCpuRound", function () {
         $scope.$apply();
@@ -375,16 +394,20 @@ app.controller("GameController", function ($scope, $routeParams) {
     $scope.allCoords = ALL_COORDS$$1;
     $scope.signImgs = SignImgs;
     $scope.state = null;
-    $scope.getCellValue = function (coord) { return model.boardState.board[coord[1]][coord[0]]; };
+    $scope.getCellValue = function (_a) {
+        var coordx = _a[0], coordy = _a[1];
+        return model.boardState.board[coordy][coordx];
+    };
     $scope.isAiRound = false;
     $scope.$watch(function () { return model.isCpuTurn(); }, function (newValue) { $scope.isAiRound = newValue; });
     $scope.gameResult = "play";
     $scope.$watch(function () { return model.boardState.getResult(); }, function (newValue) { $scope.gameResult = newValue; });
-    $scope.putSign = function (coord) {
-        model.putPlayerSign(coord[0], coord[1]);
+    $scope.putSign = function (_a) {
+        var coordx = _a[0], coordy = _a[1];
+        model.putPlayerSign(coordx, coordy);
     };
     $scope.doUndo = function () {
-        model.undoPlayerStep();
+        model.undoPlayerMove();
     };
     $scope.doReset = function () {
         model.reset("x");
@@ -392,6 +415,11 @@ app.controller("GameController", function ($scope, $routeParams) {
     $scope.isTurnOf = function (player) {
         return model.boardState.getResult() === "play" && model.boardState.turn == player;
     };
+    $scope.getPlayerType = function (player) {
+        return model.getPlayerType(player);
+    };
+    // Don't start new game on refresh
+    $location.search("mode", undefined);
     function determineModel() {
         switch ($routeParams.mode) {
             case "pvp":
@@ -411,12 +439,25 @@ app.controller("GameController", function ($scope, $routeParams) {
         }
     }
 });
+var SignImgs = {
+    "o": "img/sign-o.svg",
+    "x": "img/sign-x.svg"
+};
+app.directive("ttSign", function () {
+    return {
+        restrict: "A",
+        link: function (scope, elem, attrs) {
+            scope.$watch(attrs.ttSign, function (newValue) {
+                if (newValue) {
+                    elem.attr("src", SignImgs[newValue]);
+                }
+                elem.toggleClass("filled", !!newValue);
+            });
+        }
+    };
+});
 
-// TODO: wire ng-annotate
+// TODO: use ng-annotate
 app.controller("MenuController", function ($scope) {
     $scope.canContinue = LocalStorageGameStore.hasSavedGame();
 });
-
-var x = 4;
-x = null;
-console.log(x);
