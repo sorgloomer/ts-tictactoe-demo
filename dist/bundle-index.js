@@ -1,9 +1,3 @@
-function __extends(d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-}
-
 var app = angular.module("App", ["ngRoute"]);
 app.config([
     "$routeProvider",
@@ -185,12 +179,16 @@ var TicTacToeAI = (function () {
     TicTacToeAI.prototype._handleMessage = function (data) {
         var pending = this.pending.get(data.id);
         this.pending.delete(data.id);
-        pending[data.kind](data.value);
+        if (pending) {
+            pending[data.kind](data.value);
+        }
     };
     TicTacToeAI.prototype._createWorker = function () {
         var _this = this;
         var worker = new Worker("bundle-worker.js");
-        worker.onmessage = function (evt) { _this._handleMessage(evt.data); };
+        worker.addEventListener("message", function (evt) {
+            _this._handleMessage(evt.data);
+        });
         return worker;
     };
     TicTacToeAI.prototype._postCall = function (id, name, args) {
@@ -264,6 +262,11 @@ var GameStore = (function () {
 }());
 var LocalStorageGameStore = new GameStore(localStorage);
 
+var __extends = (undefined && undefined.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 function delay(timeoutMs) {
     return new Promise(function (resolve) {
         setTimeout(function () { return resolve(); }, timeoutMs);
@@ -317,8 +320,8 @@ var GameController = (function (_super) {
         }
     };
     GameController.prototype.undoPlayerMove = function () {
-        if (this.history.length > 0) {
-            var last = this.history.pop();
+        var last = this.history.pop();
+        if (last !== undefined) {
             this._setBoardState(last);
         }
     };
@@ -330,6 +333,9 @@ var GameController = (function (_super) {
     };
     GameController.prototype._handleCpuMove = function (winningCategory, savedChangestamp) {
         if (this._changestamp === savedChangestamp) {
+            if (winningCategory.transition === null) {
+                throw new Error("Internal error: transition not present in _handleCpuMove");
+            }
             var _a = winningCategory.transition, movex = _a[0], movey = _a[1];
             this._move(movex, movey);
             this.fireEvent("afterCpuRound");

@@ -4,7 +4,7 @@ import {MoveSelector, RandomMoveSelector} from "./minmax-strategies";
 import {EdgeToState} from "./minmax-common";
 
 
-const ENDLESS : WinningCategory = new WinningCategory("endless");
+const ENDLESS : WinningCategory<any, any> = new WinningCategory<any, any>("endless");
 
 function extendCategory<TPlayer, TTransition>(
     category: WinningCategory<TPlayer, TTransition>,
@@ -32,30 +32,31 @@ export class MinMax<TState, TTransition, TPlayer> {
 
     constructor(
         public graph : GameGraph<TState, TTransition, TPlayer>,
-        public _stepSelector : MoveSelector<TPlayer, TTransition> = new RandomMoveSelector()
+        public _stepSelector : MoveSelector<TState, TPlayer, TTransition> =
+            new RandomMoveSelector<TState, TPlayer, TTransition>()
     ) {
     }
 
-    getNodeData(state : TState) : NodeData<TState> {
+    getNodeData(state : TState) : NodeData<TState, TPlayer, TTransition> {
         const key = this.graph.serialize(state);
         const data = this.states.get(key);
         if (data) {
             return data;
         }
-        const newData = new NodeData(state);
+        const newData = new NodeData<TState, TPlayer, TTransition>(state);
         this.states.set(key, newData);
         return newData;
     }
 
-    _processFinishedState(inspection: StateInspection) : WinningCategory<TPlayer, TTransition> {
+    _processFinishedState(inspection: StateInspection<TPlayer>) : WinningCategory<TPlayer, TTransition> {
         if (inspection.isTie) {
-            return new WinningCategory("tie");
+            return new WinningCategory<TPlayer, TTransition>("tie");
         } else {
-            return new WinningCategory("winning", inspection.winnerPlayer);
+            return new WinningCategory<TPlayer, TTransition>("winning", inspection.winnerPlayer);
         }
     }
 
-    _calculateNextEdges(state: TState) : EdgeToState[] {
+    _calculateNextEdges(state: TState) : EdgeToState<TState, TPlayer, TTransition>[] {
         const transitions : TTransition[] = this.graph.transitions(state);
         return transitions.map(transition => {
             const nextState = this.graph.apply(state, transition);
@@ -64,13 +65,19 @@ export class MinMax<TState, TTransition, TPlayer> {
         });
     }
 
-    _processNonFinishedState(state: TState, inspection: StateInspection) : WinningCategory<TPlayer, TTransition> {
-        const edges: EdgeToState[] = this._calculateNextEdges(state);
-        const edge: EdgeToState = this._stepSelector.selectMove(edges, inspection.currentPlayer);
-        return extendCategory(edge.category, edge.transition);
+    _processNonFinishedState(state: TState, inspection: StateInspection<TPlayer>) : WinningCategory<TPlayer, TTransition> {
+        const edges = this._calculateNextEdges(state);
+        if (inspection.currentPlayer === undefined) {
+            throw new Error("Internal error: current player is not present in _processNonFinishedState");
+        }
+        const edge = this._stepSelector.selectMove(edges, inspection.currentPlayer);
+        return extendCategory<TPlayer, TTransition>(edge.category, edge.transition);
     }
 
-    _processWinningCategoryOf(state: TState, nodeData: NodeData<TState>) : WinningCategory<TPlayer, TTransition> {
+    _processWinningCategoryOf(
+        state: TState,
+        nodeData: NodeData<TState, TPlayer, TTransition>
+    ) : WinningCategory<TPlayer, TTransition> {
         const inspection = this.graph.inspect(state);
         if (inspection.isGameOver) {
             return this._processFinishedState(inspection);
@@ -79,7 +86,10 @@ export class MinMax<TState, TTransition, TPlayer> {
         }
     }
 
-    _processAndStoreWinningCategoryOf(state: TState, nodeData: NodeData<TState>) {
+    _processAndStoreWinningCategoryOf(
+        state: TState,
+        nodeData: NodeData<TState, TPlayer, TTransition>
+    ) {
         nodeData.traversing = true;
         const result = this._processWinningCategoryOf(state, nodeData);
         nodeData.winningCategory = result;

@@ -68,15 +68,15 @@ function _selectBy<T, U>(
     return bestItem;
 }
 
-export function minBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T = null) {
+export function minBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T) : T  {
     return _selectBy(arr, mapping, def, (prev, current) => current < prev);
 }
 
-export function maxBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T = null) {
+export function maxBy<T>(arr: T[], mapping: ArrayMapping<T, string | number>, def: T) : T {
     return _selectBy(arr, mapping, def, (prev, current) => current > prev);
 }
 
-export function getRandomItem<T>(arr : T[], def : T = null) : T {
+export function getRandomItem<T>(arr : T[], def : T) : T {
     if (arr.length < 1) {
         return def;
     }

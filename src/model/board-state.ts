@@ -1,7 +1,7 @@
 
 import * as utils from "../utils/arrays";
 import * as immutable from "../utils/immutable";
-import { int, mapRange } from "../utils/arrays";
+import { int } from "../utils/types";
 
 
 export type Turn = "o" | "x";
@@ -22,7 +22,7 @@ const DIAGONALS = [
     [2, 0, -1, 1]
 ];
 
-export const ALL_COORDS = [
+export const ALL_COORDS : [int, int][]= [
     [0,0], [0,1], [0,2],
     [1,0], [1,1], [1,2],
     [2,0], [2,1], [2,2]
@@ -37,7 +37,7 @@ export function nextPlayer(currentPlayer : Turn) : Turn {
     return currentPlayer === "o" ? "x" : "o";
 }
 
-const EMPTY_BOARD : Board = utils.repeat(utils.repeat("", 3), 3);
+const EMPTY_BOARD : Board = utils.repeat(utils.repeat<CellValue>("", 3), 3);
 
 
 function setMatrix<T>(mx:T[][], i: int, j: int, value: T) : T[][] {
@@ -83,7 +83,7 @@ export class BoardState {
 
     checkWinner() : Result {
         for (let diagonal of DIAGONALS) {
-            const temp : CellValue = this.subboardResult(...diagonal);
+            const temp : CellValue = (<any>this.subboardResult)(...diagonal);
             if (temp) {
                 return temp === "x" ? "winx" : "wino";
             }

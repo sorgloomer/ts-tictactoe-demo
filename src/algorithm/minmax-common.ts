@@ -1,7 +1,7 @@
 import {WinningCategory} from "./game-contract";
 
-export type EdgeToState<TState, TTransition, TPlayer> = {
+export type EdgeToState<TState, TPlayer, TTransition> = {
     transition: TTransition,
     nextState: TState,
-    category: WinningCategory<TState, TPlayer>
+    category: WinningCategory<TPlayer, TTransition>
 };

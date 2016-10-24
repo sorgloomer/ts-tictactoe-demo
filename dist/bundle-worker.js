@@ -1,9 +1,3 @@
-function __extends(d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-}
-
 var WinningCategory = (function () {
     function WinningCategory(kind, player, distance, transition) {
         if (player === void 0) { player = null; }
@@ -65,15 +59,12 @@ function _selectBy(arr, mapping, def, better) {
     return bestItem;
 }
 function minBy(arr, mapping, def) {
-    if (def === void 0) { def = null; }
     return _selectBy(arr, mapping, def, function (prev, current) { return current < prev; });
 }
 function maxBy(arr, mapping, def) {
-    if (def === void 0) { def = null; }
     return _selectBy(arr, mapping, def, function (prev, current) { return current > prev; });
 }
 function getRandomItem(arr, def) {
-    if (def === void 0) { def = null; }
     if (arr.length < 1) {
         return def;
     }
@@ -81,6 +72,11 @@ function getRandomItem(arr, def) {
     return arr[index];
 }
 
+var __extends = (undefined && undefined.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var MoveSelectorBase = (function () {
     function MoveSelectorBase() {
     }
@@ -93,7 +89,13 @@ var MoveSelectorBase = (function () {
     MoveSelectorBase.prototype.selectMove = function (edges, currentPlayer) {
         var edge = this.selectWinningMove(edges, currentPlayer);
         edge = edge || this.selectTieMove(edges);
-        return edge || this.selectLosingMove(edges);
+        edge = edge || this.selectLosingMove(edges);
+        if (edge !== null) {
+            return edge;
+        }
+        else {
+            throw new Error("Strategy didn't find a move");
+        }
     };
     return MoveSelectorBase;
 }());
@@ -104,14 +106,14 @@ var RandomMoveSelector = (function (_super) {
     }
     RandomMoveSelector.prototype.selectWinningMove = function (edges, currentPlayer) {
         var possibilities = this.getWinningMoves(edges, currentPlayer);
-        return getRandomItem(possibilities);
+        return getRandomItem(possibilities, null);
     };
     RandomMoveSelector.prototype.selectTieMove = function (edges) {
         var possibilities = this.getTieMoves(edges);
-        return getRandomItem(possibilities);
+        return getRandomItem(possibilities, null);
     };
     RandomMoveSelector.prototype.selectLosingMove = function (edges) {
-        return getRandomItem(edges);
+        return getRandomItem(edges, null);
     };
     return RandomMoveSelector;
 }(MoveSelectorBase));
@@ -184,6 +186,9 @@ var MinMax = (function () {
     };
     MinMax.prototype._processNonFinishedState = function (state, inspection) {
         var edges = this._calculateNextEdges(state);
+        if (inspection.currentPlayer === undefined) {
+            throw new Error("Internal error: current player is not present in _processNonFinishedState");
+        }
         var edge = this._stepSelector.selectMove(edges, inspection.currentPlayer);
         return extendCategory(edge.category, edge.transition);
     };
@@ -358,7 +363,7 @@ var activeObject = {
 function postResponse(request, kind, value) {
     self.postMessage({ id: request.id, kind: kind, value: value });
 }
-self.onmessage = function (evt) {
+self.addEventListener("message", function (evt) {
     var request = evt.data;
     if (request.kind === "call") {
         try {
@@ -370,4 +375,4 @@ self.onmessage = function (evt) {
             postResponse(request, "reject", { name: "AiWorkerError", message: "" + e });
         }
     }
-};
+});

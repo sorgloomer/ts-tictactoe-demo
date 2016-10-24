@@ -7,7 +7,6 @@ import {LocalStorageGameStore} from "../model/game-store";
 // TODO: use ng-annotate
 app.controller("MenuController",
     function($scope) {
-      $scope.canContinue = LocalStorageGameStore.hasSavedGame();
-
+        $scope.canContinue = LocalStorageGameStore.hasSavedGame();
     }
 );
